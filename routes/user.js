@@ -45,7 +45,7 @@ router.post('/register', async (req, res, next) => {
 
         const salt = await bcryptjs.genSalt(10);
         user.password = await bcryptjs.hash(password, salt);
-        
+
         user.avatar = avatar;
 
         await user.save();
@@ -122,6 +122,53 @@ router.post('/login', async (req, res, next) => {
                 res.status(200).json({
                     success: true,
                     msg: 'User logged in successfully.',
+                    token: token,
+                    user: user
+                });
+            }
+        )
+
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({
+            success: false,
+            msg: 'Server Error.'
+        })
+    }
+});
+
+router.post('/imageUpload', async (req, res, next) => {
+    const email = req.body.email;
+    const avatar = req.body.avatar;
+    try {
+        let user = await User.findOne({
+            email: email
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                msg: 'User does not exists. Please register first.'
+            });
+        }
+        //Change Avatar to the new string
+        user.avatar = avatar;
+        const payload = {
+            user: {
+                id: user.id
+            }
+        }
+
+        jwt.sign(
+            payload, process.env.jwtUserSecret,
+            {
+                expiresIn: 360000
+            }, (err, token) => {
+                if (err) throw err;
+
+                res.status(200).json({
+                    success: true,
+                    msg: 'Changed Avatar Successfully.',
                     token: token,
                     user: user
                 });
